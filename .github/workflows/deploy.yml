@@ -24,7 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5 # auto-enables Pages if needed
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true # create/enable the Pages site via API on first run
       - uses: actions/upload-pages-artifact@v3
         with:
           path: app # only the PWA is published
