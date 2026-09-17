@@ -1,6 +1,6 @@
 // Service worker — offline cache. Cache-first for the app; tiles cached as you browse.
 // Bump the CACHE version when app files change — the old cache is then deleted.
-const CACHE = 'ab-fishing-v6';
+const CACHE = 'ab-fishing-v7';
 const TILE_CACHE = 'ab-fishing-tiles-v1'; // size-capped cache for tiles seen while browsing
 const TILE_DL_CACHE = 'ab-fishing-tiles-dl-v1'; // persistent cache for explicitly downloaded areas
 const MAX_TILES = 2500; // browse cache cap; downloaded areas are not evicted
@@ -14,6 +14,10 @@ const CORE = [
   './app.js',
   './manifest.webmanifest',
   './icons/icon.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './icons/apple-touch-icon-180.png',
   './data/search-index.json',
   './data/regulations-by-id.json',
   './data/meta.json',

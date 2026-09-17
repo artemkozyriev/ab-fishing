@@ -24,7 +24,7 @@
   let lakesLayer = null; // offline vector basemap drawn from our own lake geometry
   let riversLayer = null; // offline vector rivers drawn from our own geometry
   let mapDirty = true; // markers need to be rebuilt
-  const MAX_DL_TILES = 1500; // cap so a download stays tens of MB, not gigabytes
+  const MAX_DL_TILES = 1000; // cap: keeps downloads small and gentle on OSM's public servers
   const TILE_DL_CACHE = 'ab-fishing-tiles-dl-v1'; // must match sw.js
 
   // ---------- Navigation ----------
@@ -148,9 +148,10 @@
     if (!map) {
       map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([54.5, -114.5], 5);
       // OSM tiles — shown online; the service worker also caches viewed tiles for offline use.
+      // Attribution is required by the OSM tile usage policy.
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 18,
-        attribution: '© OpenStreetMap',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
       cluster = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 50 });
       map.addLayer(cluster);
@@ -238,7 +239,9 @@
     const render = () => (status.textContent = `Downloading ${done}/${tiles.length}…`);
     render();
 
-    // Fetch with modest concurrency (be gentle on the public OSM tile servers).
+    // Fetch with LOW concurrency + a small delay per request — the OSM tile usage policy
+    // discourages bulk/heavy downloading, so keep it gentle on their donated servers.
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     let idx = 0;
     const worker = async () => {
       while (idx < tiles.length) {
@@ -251,9 +254,10 @@
         }
         done++;
         if (done % 10 === 0 || done === tiles.length) render();
+        await sleep(120);
       }
     };
-    await Promise.all(Array.from({ length: 6 }, worker));
+    await Promise.all(Array.from({ length: 2 }, worker));
 
     // Record the area so it can be listed / removed later.
     const c = map.getCenter();

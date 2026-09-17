@@ -1,0 +1,17 @@
+{
+  "name": "ab-fishing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline Alberta fishing-regulations PWA + data pipeline (solo dev).",
+  "type": "module",
+  "scripts": {
+    "fetch": "node scripts/fetch-regulations.mjs",
+    "build-data": "node scripts/build-app-data.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "serve": "node scripts/serve.mjs"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

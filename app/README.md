@@ -27,9 +27,15 @@ node ../scripts/serve.mjs      # from the scripts folder: node scripts/serve.mjs
     your fishing area works fully offline with roads and town names.
 - ⚠️ Disclaimer + data version.
 
-> Note: the "Download area" button uses the public OSM tile servers, whose usage policy discourages
-> bulk downloading. The per-download cap keeps it small/personal; for production use a proper tile
-> provider (MapTiler, Thunderforest, or self-hosted).
+> Tiles come from the public OSM servers with required attribution. Their usage policy discourages
+> bulk downloading, so "Download area" is deliberately gentle: low concurrency, a delay per tile,
+> and a ~1000-tile cap per download. For heavier/production use, switch to a proper tile provider
+> (MapTiler, Thunderforest) or self-hosted tiles.
+
+## Icons
+PWA icons are generated from `icons/icon.svg` by `scripts/make-icons.mjs` (uses `@resvg/resvg-js`):
+`icon-192.png`, `icon-512.png` (any), `icon-maskable-512.png` (maskable, full-bleed + safe zone),
+`apple-touch-icon-180.png` (iOS). Regenerate: `npm run icons`.
 
 > Filter sanity check: "LAKE STURGEON" → 106 waterbodies, but 0 with harvest allowed
 > (Alberta lake sturgeon is catch-and-release only) — the data and filter reflect real rules.
