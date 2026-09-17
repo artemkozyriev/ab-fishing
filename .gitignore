@@ -1,0 +1,13 @@
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Raw downloaded data (regenerable via scripts/fetch-regulations.mjs). The app ships its own
+# compact copy in app/data/, which IS committed.
+/data/
+
+# OS
+Thumbs.db
+.DS_Store

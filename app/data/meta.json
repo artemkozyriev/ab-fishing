@@ -1,0 +1,36 @@
+{
+  "builtAt": "2026-09-17",
+  "source": "Alberta Fish and Wildlife — Sportfishing Regulations (geospatial.alberta.ca)",
+  "attribution": "Contains information licensed under the Open Government Licence – Alberta",
+  "disclaimer": "For reference only. The official source is the Alberta Guide to Sportfishing Regulations / My Wild Alberta. Regulations change; always confirm with the official source before you go.",
+  "stats": {
+    "waterbodies": 5063,
+    "withRegulations": 5058,
+    "withCoords": 5063,
+    "lakes": 2729,
+    "rivers": 2334,
+    "species": [
+      "ARCTIC GRAYLING",
+      "BROOK TROUT",
+      "BROWN TROUT",
+      "BULL TROUT",
+      "BURBOT",
+      "CUTTHROAT TROUT",
+      "DOLLY VARDEN",
+      "GOLDEYE",
+      "LAKE STURGEON",
+      "LAKE TROUT",
+      "LAKE WHITEFISH",
+      "MOUNTAIN WHITEFISH",
+      "NORTHERN PIKE",
+      "RAINBOW TROUT",
+      "SAUGER",
+      "TIGER TROUT",
+      "TROUT TOTAL",
+      "TULLIBEE (CISCO)",
+      "WALLEYE",
+      "WALLEYE/SAUGER",
+      "YELLOW PERCH"
+    ]
+  }
+}

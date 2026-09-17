@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b3d2e" />
+    <title>AB Fishing — Alberta Fishing Regulations</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon.svg" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark">🎣</span>
+        <div>
+          <h1>AB Fishing</h1>
+          <p class="tagline">Alberta fishing regulations · offline</p>
+        </div>
+      </div>
+      <span id="net-status" class="net-status" title="Network status"></span>
+    </header>
+
+    <!-- Filter bar (shared by the list and the map) -->
+    <div class="filter-bar" id="filter-bar">
+      <select id="species-filter" aria-label="Filter by fish species">
+        <option value="">All fish species</option>
+      </select>
+      <label class="keepable">
+        <input type="checkbox" id="keepable-filter" />
+        <span>harvest allowed only</span>
+      </label>
+    </div>
+
+    <main id="view">
+      <!-- Search / list screen -->
+      <section id="screen-search" class="screen active">
+        <div class="search-bar">
+          <input
+            id="search-input"
+            type="search"
+            inputmode="search"
+            autocomplete="off"
+            placeholder="Find a lake or river…"
+            aria-label="Search waterbody"
+          />
+          <button id="btn-near" class="btn-near" title="Find near me">📍 Near me</button>
+        </div>
+        <p id="result-info" class="result-info"></p>
+        <ul id="result-list" class="result-list"></ul>
+      </section>
+
+      <!-- Map screen -->
+      <section id="screen-map" class="screen">
+        <div id="map"></div>
+        <p id="map-info" class="map-info"></p>
+      </section>
+
+      <!-- Waterbody detail screen -->
+      <section id="screen-detail" class="screen">
+        <button id="btn-back" class="btn-back">← Back</button>
+        <div id="detail-content"></div>
+      </section>
+    </main>
+
+    <nav class="tabbar" id="tabbar">
+      <button class="tab active" data-tab="search">📋 List</button>
+      <button class="tab" data-tab="map">🗺️ Map</button>
+    </nav>
+
+    <footer class="disclaimer" id="disclaimer"></footer>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      crossorigin=""
+    ></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+      }
+    </script>
+  </body>
+</html>
