@@ -14,7 +14,8 @@
   const esc = (s) =>
     String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // Species names come in UPPERCASE from the data — show them title-cased.
-  const speciesLabel = (sp) => sp.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  // Guard against null/empty (some rows are waterbody-wide rules with no species).
+  const speciesLabel = (sp) => (sp || '').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
   const state = { species: '', keepable: false, tab: 'search' };
   let searchTimer = null;
@@ -198,18 +199,21 @@
     return [Math.max(0, Math.min(n - 1, x)), Math.max(0, Math.min(n - 1, y))];
   }
 
-  // Tiles covering the current viewport from the current zoom down to +extra levels (max z16).
-  function tilesForView(bounds, z0, extra = 3) {
-    const z1 = Math.min(z0 + extra, 16);
+  // Tiles covering a lon/lat box across a zoom range.
+  function tilesForBox(w, s, e, n, z0, z1) {
     const tiles = [];
     for (let z = z0; z <= z1; z++) {
-      const [xNW, yNW] = lonLatToTile(bounds.getWest(), bounds.getNorth(), z);
-      const [xSE, ySE] = lonLatToTile(bounds.getEast(), bounds.getSouth(), z);
+      const [xNW, yNW] = lonLatToTile(w, n, z);
+      const [xSE, ySE] = lonLatToTile(e, s, z);
       for (let x = Math.min(xNW, xSE); x <= Math.max(xNW, xSE); x++)
         for (let y = Math.min(yNW, ySE); y <= Math.max(yNW, ySE); y++) tiles.push([z, x, y]);
     }
     return tiles;
   }
+  const boxOf = (bounds, z0, extra = 3) => ({
+    w: bounds.getWest(), s: bounds.getSouth(), e: bounds.getEast(), n: bounds.getNorth(),
+    z0, z1: Math.min(z0 + extra, 16),
+  });
 
   const tileUrl = ([z, x, y]) => {
     const s = 'abc'[Math.abs(x + y) % 3]; // same subdomain rule Leaflet uses → cache keys match
@@ -218,7 +222,8 @@
 
   async function downloadArea() {
     if (!map || !('caches' in window)) return toast('Offline download not supported here');
-    const tiles = tilesForView(map.getBounds(), map.getZoom(), 3);
+    const box = boxOf(map.getBounds(), map.getZoom(), 3);
+    const tiles = tilesForBox(box.w, box.s, box.e, box.n, box.z0, box.z1);
     if (tiles.length > MAX_DL_TILES) {
       return toast(`Area too large (${tiles.length} tiles). Zoom in a bit and try again.`);
     }
@@ -237,8 +242,7 @@
     let idx = 0;
     const worker = async () => {
       while (idx < tiles.length) {
-        const t = tiles[idx++];
-        const url = tileUrl(t);
+        const url = tileUrl(tiles[idx++]);
         try {
           const res = await fetch(url, { mode: 'no-cors' }); // opaque, cacheable for <img>
           await cache.put(url, res);
@@ -251,9 +255,90 @@
     };
     await Promise.all(Array.from({ length: 6 }, worker));
 
+    // Record the area so it can be listed / removed later.
+    const c = map.getCenter();
+    const areas = loadAreas();
+    areas.push({
+      id: Date.now(),
+      name: `Area @ ${c.lat.toFixed(2)}, ${c.lng.toFixed(2)}`,
+      date: new Date().toISOString().slice(0, 10),
+      box,
+      count: tiles.length,
+    });
+    saveAreas(areas);
+
     status.hidden = true;
     btn.disabled = false;
     toast(failed ? `Saved ${done - failed}/${tiles.length} tiles (some failed)` : `Area saved offline (${done} tiles)`);
+  }
+
+  // ---------- Downloaded-areas registry (localStorage) ----------
+  const DL_KEY = 'ab-fishing-dl-areas';
+  const loadAreas = () => {
+    try {
+      return JSON.parse(localStorage.getItem(DL_KEY)) || [];
+    } catch {
+      return [];
+    }
+  };
+  const saveAreas = (a) => localStorage.setItem(DL_KEY, JSON.stringify(a));
+  const estMB = (tiles) => ((tiles * 22) / 1024).toFixed(1); // ~22 KB per tile estimate
+
+  async function openDownloads() {
+    const modal = $('downloads-modal');
+    modal.hidden = false;
+    await renderDownloads();
+  }
+
+  async function renderDownloads() {
+    const body = $('downloads-body');
+    body.innerHTML = '';
+    const areas = loadAreas();
+
+    // Totals: actual tile count in the download cache + rough size estimate.
+    let cachedTiles = 0;
+    try {
+      cachedTiles = (await (await caches.open(TILE_DL_CACHE)).keys()).length;
+    } catch {
+      /* ignore */
+    }
+    const total = el('div', 'dl-total');
+    total.innerHTML = `Saved areas: <b>${areas.length}</b> · tiles in storage: <b>${cachedTiles}</b> · ~<b>${estMB(cachedTiles)} MB</b>`;
+    body.appendChild(total);
+
+    if (!areas.length) {
+      body.appendChild(el('p', 'dl-empty', 'No downloaded areas yet. On the map, frame an area and tap "⬇️ Download area".'));
+    }
+    for (const a of areas) {
+      const row = el('div', 'dl-row');
+      const info = el('div', 'dl-info');
+      info.appendChild(el('div', 'dl-name', esc(a.name)));
+      info.appendChild(el('div', 'dl-sub', `${a.date} · z${a.box.z0}–${a.box.z1} · ${a.count} tiles · ~${estMB(a.count)} MB`));
+      row.appendChild(info);
+      const del = el('button', 'dl-del', 'Delete');
+      del.addEventListener('click', () => deleteArea(a.id));
+      row.appendChild(del);
+      body.appendChild(row);
+    }
+  }
+
+  async function deleteArea(id) {
+    const areas = loadAreas();
+    const a = areas.find((x) => x.id === id);
+    if (!a) return;
+    const cache = await caches.open(TILE_DL_CACHE);
+    const tiles = tilesForBox(a.box.w, a.box.s, a.box.e, a.box.n, a.box.z0, a.box.z1);
+    await Promise.all(tiles.map((t) => cache.delete(tileUrl(t))));
+    saveAreas(areas.filter((x) => x.id !== id));
+    toast('Area deleted');
+    await renderDownloads();
+  }
+
+  async function clearAllDownloads() {
+    await caches.delete(TILE_DL_CACHE);
+    saveAreas([]);
+    toast('All downloads cleared');
+    await renderDownloads();
   }
 
   function renderMarkers() {
@@ -311,19 +396,22 @@
       return;
     }
 
-    // Group regulations by species (preserving first-seen order).
+    // Group regulations by species (preserving first-seen order). Rows with no species
+    // ('' key) are waterbody-wide rules (e.g. a general closure) — shown as "General rules".
     const groups = new Map();
     for (const r of data.r) {
-      if (!groups.has(r.sp)) groups.set(r.sp, []);
-      groups.get(r.sp).push(r);
+      const key = r.sp || '';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
     }
 
     for (const [species, rows] of groups) {
       const card = el('div', 'species-card');
       // Highlight the species if it is selected in the filter.
-      if (state.species && species === state.species) card.style.borderColor = 'var(--accent)';
+      if (species && state.species && species === state.species) card.style.borderColor = 'var(--accent)';
       const head = el('div', 'species-head');
-      head.appendChild(el('span', 'species-name', esc(speciesLabel(species))));
+      head.appendChild(el('span', 'species-name', species ? esc(speciesLabel(species)) : 'General rules'));
+      if (!species) head.appendChild(el('span', 'species-ru', 'whole waterbody'));
       card.appendChild(head);
 
       for (const r of rows) {
@@ -331,10 +419,8 @@
         const open = (r.ss || '').toUpperCase() === 'OPEN';
         row.appendChild(el('span', 'tag ' + (open ? 'open' : 'closed'), open ? 'open' : 'closed'));
         if (r.se) row.appendChild(el('span', 'chip', esc(r.se)));
-        const bagZero = r.bl === 0;
-        row.appendChild(
-          el('span', 'chip' + (bagZero ? ' zero' : ''), bagZero ? 'harvest: <b>0 (catch & release)</b>' : `limit: <b>${esc(r.bl)}</b>`),
-        );
+        if (r.bl === 0) row.appendChild(el('span', 'chip zero', 'harvest: <b>0 (catch & release)</b>'));
+        else if (r.bl != null) row.appendChild(el('span', 'chip', `limit: <b>${esc(r.bl)}</b>`));
         const size = fmtSize(r.lo, r.hi);
         if (size) row.appendChild(el('span', 'chip', `size: <b>${esc(size)}</b>`));
         if (r.bt) row.appendChild(el('span', 'chip', esc(r.bt)));
@@ -374,6 +460,9 @@
     $('keepable-filter').addEventListener('change', onFilterChange);
     document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showScreen(t.dataset.tab)));
     $('btn-download').addEventListener('click', downloadArea);
+    $('btn-manage').addEventListener('click', openDownloads);
+    $('dl-close').addEventListener('click', () => ($('downloads-modal').hidden = true));
+    $('dl-clear-all').addEventListener('click', clearAllDownloads);
 
     try {
       const meta = await DB.load();

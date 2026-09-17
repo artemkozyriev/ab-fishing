@@ -1,6 +1,6 @@
 // Service worker — offline cache. Cache-first for the app; tiles cached as you browse.
 // Bump the CACHE version when app files change — the old cache is then deleted.
-const CACHE = 'ab-fishing-v5';
+const CACHE = 'ab-fishing-v6';
 const TILE_CACHE = 'ab-fishing-tiles-v1'; // size-capped cache for tiles seen while browsing
 const TILE_DL_CACHE = 'ab-fishing-tiles-dl-v1'; // persistent cache for explicitly downloaded areas
 const MAX_TILES = 2500; // browse cache cap; downloaded areas are not evicted
@@ -28,6 +28,10 @@ const VENDOR = [
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
+  // Default marker icons (otherwise markers render broken offline).
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 ];
 
 const isTile = (url) => url.hostname.endsWith('tile.openstreetmap.org');

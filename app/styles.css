@@ -80,11 +80,16 @@ html, body {
 /* Land-coloured background so offline (no tiles) looks like a schematic map, not grey. */
 .leaflet-container { background: #e8efe6; }
 .map-info { margin: 8px 16px; font-size: 12px; color: var(--muted); }
-.btn-download {
+.map-btns {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 1000;
+  display: flex;
+  gap: 6px;
+}
+.btn-download,
+.btn-manage {
   background: var(--green);
   color: #fff;
   border: none;
@@ -95,7 +100,73 @@ html, body {
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
+.btn-manage { background: var(--green-light); }
 .btn-download:disabled { opacity: 0.6; }
+
+/* Modal (downloads manager) */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal[hidden] { display: none; }
+.modal-card {
+  background: #fff;
+  width: 100%;
+  max-width: 560px;
+  max-height: 80dvh;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.modal-head h3 { margin: 0; font-size: 17px; }
+.modal-close { border: none; background: none; font-size: 18px; color: var(--muted); cursor: pointer; }
+.modal-body { padding: 12px 16px; overflow-y: auto; }
+.modal-foot { padding: 12px 16px; border-top: 1px solid var(--line); }
+.dl-total { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.dl-empty { color: var(--muted); font-size: 14px; }
+.dl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.dl-info { flex: 1; min-width: 0; }
+.dl-name { font-weight: 600; font-size: 14px; }
+.dl-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.dl-del {
+  border: 1px solid var(--closed);
+  color: var(--closed);
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-danger {
+  width: 100%;
+  border: none;
+  background: var(--closed);
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
 .dl-status {
   position: absolute;
   left: 50%;

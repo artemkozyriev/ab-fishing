@@ -67,9 +67,12 @@
       <!-- Map screen -->
       <section id="screen-map" class="screen">
         <div id="map">
-          <button id="btn-download" class="btn-download" title="Download this area for offline use">
-            ⬇️ Download area
-          </button>
+          <div class="map-btns">
+            <button id="btn-download" class="btn-download" title="Download this area for offline use">
+              ⬇️ Download area
+            </button>
+            <button id="btn-manage" class="btn-manage" title="Manage downloaded areas">🗂️ Saved</button>
+          </div>
           <div id="dl-status" class="dl-status" hidden></div>
         </div>
         <p id="map-info" class="map-info"></p>
@@ -86,6 +89,20 @@
       <button class="tab active" data-tab="search">📋 List</button>
       <button class="tab" data-tab="map">🗺️ Map</button>
     </nav>
+
+    <!-- Downloaded-areas manager -->
+    <div id="downloads-modal" class="modal" hidden>
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3>Offline downloads</h3>
+          <button id="dl-close" class="modal-close" aria-label="Close">✕</button>
+        </div>
+        <div id="downloads-body" class="modal-body"></div>
+        <div class="modal-foot">
+          <button id="dl-clear-all" class="btn-danger">Clear all downloads</button>
+        </div>
+      </div>
+    </div>
 
     <footer class="disclaimer" id="disclaimer"></footer>
 
