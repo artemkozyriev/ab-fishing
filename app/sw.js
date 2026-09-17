@@ -1,8 +1,9 @@
 // Service worker — offline cache. Cache-first for the app; tiles cached as you browse.
 // Bump the CACHE version when app files change — the old cache is then deleted.
-const CACHE = 'ab-fishing-v4';
-const TILE_CACHE = 'ab-fishing-tiles-v1'; // separate, size-capped cache for map tiles
-const MAX_TILES = 2500; // ~ enough for a few fishing areas across zoom levels
+const CACHE = 'ab-fishing-v5';
+const TILE_CACHE = 'ab-fishing-tiles-v1'; // size-capped cache for tiles seen while browsing
+const TILE_DL_CACHE = 'ab-fishing-tiles-dl-v1'; // persistent cache for explicitly downloaded areas
+const MAX_TILES = 2500; // browse cache cap; downloaded areas are not evicted
 
 // Local assets (required — install fails if any are missing).
 const CORE = [
@@ -48,7 +49,11 @@ self.addEventListener('activate', (e) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE && k !== TILE_CACHE).map((k) => caches.delete(k))),
+        Promise.all(
+          keys
+            .filter((k) => k !== CACHE && k !== TILE_CACHE && k !== TILE_DL_CACHE)
+            .map((k) => caches.delete(k)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -71,16 +76,25 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
 
-  // Map tiles: network-first (stay fresh online), cache each one, fall back to cache offline.
-  // Tiles are cross-origin no-cors → opaque responses; those are cacheable and replayable for <img>.
+  // Map tiles: cache-first (downloaded areas → browse cache → network). Saves data and works
+  // offline. Tiles are cross-origin no-cors → opaque responses; those are cacheable for <img>.
   if (isTile(url)) {
     e.respondWith(
-      fetch(e.request)
-        .then((res) => {
+      (async () => {
+        const dl = await caches.open(TILE_DL_CACHE);
+        const hitDl = await dl.match(e.request);
+        if (hitDl) return hitDl;
+        const br = await caches.open(TILE_CACHE);
+        const hitBr = await br.match(e.request);
+        if (hitBr) return hitBr;
+        try {
+          const res = await fetch(e.request);
           cacheTile(e.request, res.clone()); // fire and forget
           return res;
-        })
-        .catch(() => caches.open(TILE_CACHE).then((c) => c.match(e.request))),
+        } catch {
+          return Response.error();
+        }
+      })(),
     );
     return;
   }

@@ -19,10 +19,17 @@ node ../scripts/serve.mjs      # from the scripts folder: node scripts/serve.mjs
 - 📍 **Near me**: GPS → point-in-polygon over lake geometry → "you are on Lake X" + nearest lakes.
 - 📴 **Offline**, including the map:
   - App, data and Leaflet are cached (cache-first).
-  - A vector water layer (lake outlines) is drawn from our own geometry — visible offline everywhere.
-  - OSM tiles are cached as you browse (network-first, capped at ~2500 tiles); areas you viewed
-    online then work offline. Areas never viewed show the land-coloured background + lake outlines.
+  - Vector water layers (lake outlines + river lines) are drawn from our own geometry — visible
+    offline everywhere.
+  - OSM tiles (which include roads + place names) are cached as you browse, capped at ~2500 tiles.
+  - **⬇️ Download area** button: pre-caches all tiles in the current view down a few zoom levels
+    into a persistent cache (capped ~1500 tiles per download so it stays tens of MB, not GB) — so
+    your fishing area works fully offline with roads and town names.
 - ⚠️ Disclaimer + data version.
+
+> Note: the "Download area" button uses the public OSM tile servers, whose usage policy discourages
+> bulk downloading. The per-download cap keeps it small/personal; for production use a proper tile
+> provider (MapTiler, Thunderforest, or self-hosted).
 
 > Filter sanity check: "LAKE STURGEON" → 106 waterbodies, but 0 with harvest allowed
 > (Alberta lake sturgeon is catch-and-release only) — the data and filter reflect real rules.
@@ -48,9 +55,10 @@ Rebuild the data: `node ../scripts/build-app-data.mjs`. When you change app file
 `CACHE` version in `sw.js`, otherwise users keep the old cached version.
 
 ## Deliberate MVP simplifications (next TODOs)
-- Offline map: lake outlines (vector) always show; street tiles only where cached from an online
-  visit. No "download this area" button yet, and rivers aren't drawn as vector lines yet.
 - Rivers are not used in "Near me" (lake polygons only; rivers are lines and need a buffer).
+- No "manage/clear downloaded areas" UI yet (downloads persist in the `ab-fishing-tiles-dl-v1` cache).
+- Offline street detail is limited to areas browsed or downloaded (whole-province street tiles
+  would be too large to bundle).
 - Map markers use the waterbody centroid (not the outline); lake polygons can be drawn later.
 - No bathymetry/depth maps (the next data source is AGS).
 - ⚠️ Regulation data comes from an API without a public licence; get provincial permission

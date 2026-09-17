@@ -96,8 +96,43 @@ async function main() {
   // Sort by name for stable output.
   index.sort((x, y) => x.nm.localeCompare(y.nm));
 
-  // --- 3) Lake geometry (copy) ---
+  // --- 3) Lake geometry (copy) + simplified river geometry (for the map) ---
   await copyFile(path.join(DATA, 'lakes.geojson'), path.join(OUT, 'lakes.geojson'));
+
+  // Rivers are ~25 MB at full detail — too heavy to ship. Decimate points by distance
+  // (keep a vertex only if it's far enough from the last kept one). Good enough for display.
+  const MIN_DEG = 0.0015; // ~150 m between kept vertices (map-scale detail)
+  const decimate = (line) => {
+    if (line.length <= 2) return line;
+    const out = [line[0]];
+    let last = line[0];
+    for (let i = 1; i < line.length - 1; i++) {
+      const dx = line[i][0] - last[0], dy = line[i][1] - last[1];
+      if (dx * dx + dy * dy >= MIN_DEG * MIN_DEG) { out.push(line[i]); last = line[i]; }
+    }
+    out.push(line[line.length - 1]);
+    return out;
+  };
+  const simplifyGeom = (g) => {
+    if (g.type === 'LineString') return { type: 'LineString', coordinates: decimate(g.coordinates) };
+    if (g.type === 'MultiLineString')
+      return { type: 'MultiLineString', coordinates: g.coordinates.map(decimate) };
+    return g;
+  };
+  try {
+    const rivers = await readJson(path.join(DATA, 'rivers.geojson'));
+    const feats = rivers.features.map((f) => ({
+      type: 'Feature',
+      properties: { nm: (f.properties.Official_Name || f.properties.Common_Name || '').trim() },
+      geometry: simplifyGeom(f.geometry),
+    }));
+    await writeFile(
+      path.join(OUT, 'rivers.geojson'),
+      JSON.stringify({ type: 'FeatureCollection', features: feats }),
+    );
+  } catch {
+    /* rivers optional — the map still works with lakes only */
+  }
 
   // --- 4) Meta ---
   const speciesSet = new Set();
