@@ -76,7 +76,9 @@ html, body {
 
 /* Map */
 #screen-map { max-width: none; padding: 0; }
-#map { width: 100%; height: calc(100dvh - 255px); min-height: 320px; background: #dfe4e0; }
+#map { width: 100%; height: calc(100dvh - 255px); min-height: 320px; }
+/* Land-coloured background so offline (no tiles) looks like a schematic map, not grey. */
+.leaflet-container { background: #e8efe6; }
 .map-info { margin: 8px 16px; font-size: 12px; color: var(--muted); }
 .leaflet-popup-content { margin: 10px 12px; font-size: 14px; }
 .popup-name { font-weight: 700; margin-bottom: 2px; }

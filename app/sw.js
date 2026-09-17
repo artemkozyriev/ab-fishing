@@ -1,6 +1,8 @@
-// Service worker — offline cache. Cache-first: the app and its data work without a network.
-// Bump the CACHE version when files change — the old cache is then deleted.
-const CACHE = 'ab-fishing-v3';
+// Service worker — offline cache. Cache-first for the app; tiles cached as you browse.
+// Bump the CACHE version when app files change — the old cache is then deleted.
+const CACHE = 'ab-fishing-v4';
+const TILE_CACHE = 'ab-fishing-tiles-v1'; // separate, size-capped cache for map tiles
+const MAX_TILES = 2500; // ~ enough for a few fishing areas across zoom levels
 
 // Local assets (required — install fails if any are missing).
 const CORE = [
@@ -27,6 +29,8 @@ const VENDOR = [
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
 ];
 
+const isTile = (url) => url.hostname.endsWith('tile.openstreetmap.org');
+
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches
@@ -43,17 +47,45 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(keys.filter((k) => k !== CACHE && k !== TILE_CACHE).map((k) => caches.delete(k))),
+      )
       .then(() => self.clients.claim()),
   );
 });
 
+// Store a tile and keep the tile cache under MAX_TILES (rough FIFO — Cache API keeps insertion order).
+let tilePuts = 0;
+async function cacheTile(req, res) {
+  const c = await caches.open(TILE_CACHE);
+  await c.put(req, res);
+  if (++tilePuts % 50 === 0) {
+    const keys = await c.keys();
+    if (keys.length > MAX_TILES) {
+      await Promise.all(keys.slice(0, keys.length - MAX_TILES).map((k) => c.delete(k)));
+    }
+  }
+}
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  // Don't cache map tiles (there are thousands) — they load online only.
-  if (url.hostname.endsWith('tile.openstreetmap.org')) return;
 
+  // Map tiles: network-first (stay fresh online), cache each one, fall back to cache offline.
+  // Tiles are cross-origin no-cors → opaque responses; those are cacheable and replayable for <img>.
+  if (isTile(url)) {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          cacheTile(e.request, res.clone()); // fire and forget
+          return res;
+        })
+        .catch(() => caches.open(TILE_CACHE).then((c) => c.match(e.request))),
+    );
+    return;
+  }
+
+  // App shell + data + vendor: cache-first.
   e.respondWith(
     caches.match(e.request).then((cached) => {
       if (cached) return cached;

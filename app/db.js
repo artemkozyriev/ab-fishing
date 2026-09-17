@@ -161,5 +161,6 @@
     findNearby,
     allWaterbodies,
     filterBySpecies,
+    loadLakes, // lake geometry (FeatureCollection), lazy-loaded — reused by the offline map layer
   };
 })();

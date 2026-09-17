@@ -17,7 +17,11 @@ node ../scripts/serve.mjs      # from the scripts folder: node scripts/serve.mjs
 - 🎯 **Filter by fish species** (shared by list and map): "where can I fish for walleye" + a
   "harvest allowed only" option (bag limit > 0).
 - 📍 **Near me**: GPS → point-in-polygon over lake geometry → "you are on Lake X" + nearest lakes.
-- 📴 **Offline**: the service worker caches the app, data and Leaflet (cache-first). Map tiles are online only.
+- 📴 **Offline**, including the map:
+  - App, data and Leaflet are cached (cache-first).
+  - A vector water layer (lake outlines) is drawn from our own geometry — visible offline everywhere.
+  - OSM tiles are cached as you browse (network-first, capped at ~2500 tiles); areas you viewed
+    online then work offline. Areas never viewed show the land-coloured background + lake outlines.
 - ⚠️ Disclaimer + data version.
 
 > Filter sanity check: "LAKE STURGEON" → 106 waterbodies, but 0 with harvest allowed
@@ -44,7 +48,8 @@ Rebuild the data: `node ../scripts/build-app-data.mjs`. When you change app file
 `CACHE` version in `sw.js`, otherwise users keep the old cached version.
 
 ## Deliberate MVP simplifications (next TODOs)
-- Map tiles are online only (caching thousands of tiles is impractical); markers/list/GPS work offline.
+- Offline map: lake outlines (vector) always show; street tiles only where cached from an online
+  visit. No "download this area" button yet, and rivers aren't drawn as vector lines yet.
 - Rivers are not used in "Near me" (lake polygons only; rivers are lines and need a buffer).
 - Map markers use the waterbody centroid (not the outline); lake polygons can be drawn later.
 - No bathymetry/depth maps (the next data source is AGS).

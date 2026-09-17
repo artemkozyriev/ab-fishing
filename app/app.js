@@ -20,6 +20,7 @@
   let searchTimer = null;
   let map = null;
   let cluster = null;
+  let lakesLayer = null; // offline vector basemap drawn from our own lake geometry
   let mapDirty = true; // markers need to be rebuilt
 
   // ---------- Navigation ----------
@@ -135,19 +136,35 @@
   }
 
   // ---------- Map ----------
-  function openMap() {
+  async function openMap() {
     if (!window.L) {
       $('map-info').textContent = 'The map is unavailable offline on first run (Leaflet needs the internet to load). The list and "Near me" work offline.';
       return;
     }
     if (!map) {
-      map = L.map('map', { zoomControl: true }).setView([54.5, -114.5], 5);
+      map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([54.5, -114.5], 5);
+      // OSM tiles — shown online; the service worker also caches viewed tiles for offline use.
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 18,
         attribution: '© OpenStreetMap',
       }).addTo(map);
       cluster = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 50 });
       map.addLayer(cluster);
+    }
+    // Offline vector basemap: draw lake outlines from our own geometry, so waterbodies are
+    // visible even where no tiles are cached. Reuses the lakes already loaded for GPS (no extra download).
+    if (!lakesLayer) {
+      try {
+        const fc = await DB.loadLakes();
+        lakesLayer = L.geoJSON(fc, {
+          renderer: L.canvas(),
+          interactive: false, // don't block marker clicks
+          style: { color: '#3a7bd5', weight: 0.6, fillColor: '#8fc0f0', fillOpacity: 0.45 },
+        }).addTo(map);
+        lakesLayer.bringToBack();
+      } catch {
+        /* lakes optional — map still works with tiles/markers */
+      }
     }
     setTimeout(() => map.invalidateSize(), 50); // Leaflet must recompute size after display:none
     if (mapDirty) renderMarkers();
