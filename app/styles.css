@@ -181,6 +181,30 @@ html, body {
   max-width: 88%;
   text-align: center;
 }
+.depth-legend {
+  position: absolute;
+  left: 10px;
+  bottom: 24px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+  padding: 6px 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-size: 11px;
+  color: var(--text);
+}
+.legend-title { font-weight: 600; margin-bottom: 3px; }
+.legend-scale { display: flex; }
+.legend-scale span { width: 18px; height: 10px; display: block; }
+.legend-labels { display: flex; justify-content: space-between; color: var(--muted); }
+.depth-note {
+  background: #e4eefb;
+  color: #274b86;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
 .leaflet-popup-content { margin: 10px 12px; font-size: 14px; }
 .popup-name { font-weight: 700; margin-bottom: 2px; }
 .popup-sub { color: var(--muted); font-size: 12px; margin-bottom: 8px; }

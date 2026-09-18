@@ -53,6 +53,17 @@ async function main() {
     }
   }
 
+  // --- Bathymetry: copy to app + set of lake names that have depth contours ---
+  const norm = (s) => (s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  const bathyLakes = new Set();
+  try {
+    const bathy = await readJson(path.join(DATA, 'bathymetry.geojson'));
+    for (const f of bathy.features) if (f.properties.ln) bathyLakes.add(norm(f.properties.ln));
+    await copyFile(path.join(DATA, 'bathymetry.geojson'), path.join(OUT, 'bathymetry.geojson'));
+  } catch {
+    /* bathymetry optional */
+  }
+
   // --- 2) Regulations by WB_ID (compact keys) ---
   // A single WB_ID may have several sections — merge all their regulations.
   const regsById = {};
@@ -91,6 +102,7 @@ async function main() {
       l: w.layerId, // 0 river / 1 lake
       hr: regsById[a.WB_ID] ? 1 : 0, // has regulations
       co: coords.get(a.WB_ID) || undefined, // [lon, lat] for the map
+      bt: bathyLakes.has(norm(display)) ? 1 : undefined, // has depth map (bathymetry)
     });
   }
   // Sort by name for stable output.
@@ -148,6 +160,7 @@ async function main() {
       waterbodies: index.length,
       withRegulations: index.filter((x) => x.hr).length,
       withCoords: index.filter((x) => x.co).length,
+      withBathymetry: index.filter((x) => x.bt).length,
       lakes: index.filter((x) => x.l === 1).length,
       rivers: index.filter((x) => x.l === 0).length,
       species: [...speciesSet].sort(),

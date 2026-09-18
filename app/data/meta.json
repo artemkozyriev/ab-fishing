@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-09-17",
+  "builtAt": "2026-09-18",
   "source": "Alberta Fish and Wildlife — Sportfishing Regulations (geospatial.alberta.ca)",
   "attribution": "Contains information licensed under the Open Government Licence – Alberta",
   "disclaimer": "For reference only. The official source is the Alberta Guide to Sportfishing Regulations / My Wild Alberta. Regulations change; always confirm with the official source before you go.",
@@ -7,6 +7,7 @@
     "waterbodies": 5063,
     "withRegulations": 5058,
     "withCoords": 5063,
+    "withBathymetry": 274,
     "lakes": 2729,
     "rivers": 2334,
     "species": [

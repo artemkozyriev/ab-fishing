@@ -10,6 +10,7 @@
   let lakes = null; // FeatureCollection (lazy-loaded for GPS)
   let lakeCentroids = null; // [{id, lat, lon, feat}]
   let rivers = null; // FeatureCollection (lazy-loaded for the map)
+  let bathymetry = null; // depth contours FeatureCollection (lazy-loaded for the map)
 
   async function getJson(url) {
     const res = await fetch(url);
@@ -140,6 +141,12 @@
     return rivers;
   }
 
+  async function loadBathymetry() {
+    if (bathymetry) return bathymetry;
+    bathymetry = await getJson('data/bathymetry.geojson');
+    return bathymetry;
+  }
+
   // Returns {containing:[...], nearest:[...]} with distances (km).
   async function findNearby(lat, lon, nNearest = 12) {
     await loadLakes();
@@ -170,5 +177,6 @@
     filterBySpecies,
     loadLakes, // lake geometry (FeatureCollection), lazy-loaded — reused by the offline map layer
     loadRivers, // simplified river geometry for the map, lazy-loaded
+    loadBathymetry, // lake depth contours for the map, lazy-loaded
   };
 })();

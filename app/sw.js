@@ -1,6 +1,6 @@
 // Service worker — offline cache. Cache-first for the app; tiles cached as you browse.
 // Bump the CACHE version when app files change — the old cache is then deleted.
-const CACHE = 'ab-fishing-v7';
+const CACHE = 'ab-fishing-v8';
 const TILE_CACHE = 'ab-fishing-tiles-v1'; // size-capped cache for tiles seen while browsing
 const TILE_DL_CACHE = 'ab-fishing-tiles-dl-v1'; // persistent cache for explicitly downloaded areas
 const MAX_TILES = 2500; // browse cache cap; downloaded areas are not evicted
@@ -22,6 +22,8 @@ const CORE = [
   './data/regulations-by-id.json',
   './data/meta.json',
   './data/lakes.geojson',
+  './data/rivers.geojson',
+  './data/bathymetry.geojson',
 ];
 
 // External Leaflet assets (for the offline map). Cached "softly" — if the CDN is unreachable

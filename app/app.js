@@ -23,7 +23,20 @@
   let cluster = null;
   let lakesLayer = null; // offline vector basemap drawn from our own lake geometry
   let riversLayer = null; // offline vector rivers drawn from our own geometry
+  let bathyLayer = null; // depth contours (AER/AGS), shown when zoomed in
+  const BATHY_MIN_ZOOM = 10; // contours are dense — only show when zoomed in
   let mapDirty = true; // markers need to be rebuilt
+
+  // Depth colour ramp (metres): shallow → deep.
+  function depthColor(d) {
+    if (d == null) return '#7fb0d8';
+    if (d < 2) return '#c6e6f5';
+    if (d < 5) return '#8fc4e8';
+    if (d < 10) return '#5b9bd5';
+    if (d < 20) return '#3a6fb0';
+    if (d < 40) return '#274b86';
+    return '#16305c';
+  }
   const MAX_DL_TILES = 1000; // cap: keeps downloads small and gentle on OSM's public servers
   const TILE_DL_CACHE = 'ab-fishing-tiles-dl-v1'; // must match sw.js
 
@@ -186,8 +199,33 @@
         /* rivers optional */
       }
     }
+    // Depth contours (bathymetry) — coloured by depth, shown only when zoomed in.
+    if (!bathyLayer) {
+      try {
+        const fc = await DB.loadBathymetry();
+        bathyLayer = L.geoJSON(fc, {
+          renderer: L.canvas(),
+          interactive: false,
+          attribution: 'Bathymetry: AER/Alberta Geological Survey (OGL–Alberta)',
+          style: (f) => ({ color: depthColor(f.properties.d), weight: 0.8 }),
+        });
+        map.on('zoomend', updateBathyVis);
+        updateBathyVis();
+      } catch {
+        /* bathymetry optional */
+      }
+    }
     setTimeout(() => map.invalidateSize(), 50); // Leaflet must recompute size after display:none
     if (mapDirty) renderMarkers();
+  }
+
+  // Show depth contours + legend only when zoomed in (they're dense at low zoom).
+  function updateBathyVis() {
+    if (!bathyLayer || !map) return;
+    const show = map.getZoom() >= BATHY_MIN_ZOOM;
+    if (show && !map.hasLayer(bathyLayer)) bathyLayer.addTo(map);
+    else if (!show && map.hasLayer(bathyLayer)) map.removeLayer(bathyLayer);
+    $('depth-legend').hidden = !show;
   }
 
   // ---------- Offline area download (tiles) ----------
@@ -391,6 +429,11 @@
     const metaBits = [w.l === 1 ? 'Lake' : 'River', 'management zone ' + esc(w.fmz)];
     if (data && data.ga) metaBits.push('district ' + esc(data.ga));
     c.appendChild(el('div', 'detail-meta', metaBits.join(' · ')));
+
+    if (w.bt) {
+      const note = el('div', 'depth-note', '📊 Depth map available — open the Map tab and zoom in to see depth contours.');
+      c.appendChild(note);
+    }
 
     if (!data || !data.r.length) {
       c.appendChild(
