@@ -14,9 +14,10 @@ node ../scripts/serve.mjs      # from the scripts folder: node scripts/serve.mjs
 - 🔎 **Search** waterbody by name (offline, 5,063 lakes and rivers).
 - 🐟 **Regulations by species**: seasons (open/closed), bag limit, min/max size, bait.
 - 🗺️ **Map** (Leaflet + OSM, marker clustering): all waterbodies as points, tap → regulations.
-- 📊 **Depth maps (bathymetry)**: lake depth contours from AER/Alberta Geological Survey (166 lakes,
-  ~3375 contours), coloured by depth, shown when zoomed in (≥ z10) with a legend. Waterbodies with
-  a depth map get a badge in the detail view. Licence: OGL–Alberta (attributed on the map).
+- 📊 **Depth maps (bathymetry)**: lake depths from AER/Alberta Geological Survey (166 lakes) shown
+  as filled depth zones (light blue → dark blue), visible when zoomed in (≥ z10) with a legend.
+  Tap any zone → exact depth in metres; each lake shows its max-depth label. Waterbodies with a
+  depth map get a badge in the detail view. Licence: OGL–Alberta (attributed on the map).
 - 🎯 **Filter by fish species** (shared by list and map): "where can I fish for walleye" + a
   "harvest allowed only" option (bag limit > 0).
 - 📍 **Near me**: GPS → point-in-polygon over lake geometry → "you are on Lake X" + nearest lakes.

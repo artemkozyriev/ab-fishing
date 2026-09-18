@@ -23,7 +23,8 @@
   let cluster = null;
   let lakesLayer = null; // offline vector basemap drawn from our own lake geometry
   let riversLayer = null; // offline vector rivers drawn from our own geometry
-  let bathyLayer = null; // depth contours (AER/AGS), shown when zoomed in
+  let bathyLayer = null; // depth zones (AER/AGS), shown when zoomed in
+  let bathyLabels = null; // per-lake max-depth labels
   const BATHY_MIN_ZOOM = 10; // contours are dense — only show when zoomed in
   let mapDirty = true; // markers need to be rebuilt
 
@@ -199,16 +200,12 @@
         /* rivers optional */
       }
     }
-    // Depth contours (bathymetry) — coloured by depth, shown only when zoomed in.
+    // Depth contours (bathymetry) — filled depth zones (light→dark blue), shown when zoomed in.
     if (!bathyLayer) {
       try {
         const fc = await DB.loadBathymetry();
-        bathyLayer = L.geoJSON(fc, {
-          renderer: L.canvas(),
-          interactive: false,
-          attribution: 'Bathymetry: AER/Alberta Geological Survey (OGL–Alberta)',
-          style: (f) => ({ color: depthColor(f.properties.d), weight: 0.8 }),
-        });
+        bathyLayer = buildBathyLayer(fc);
+        bathyLabels = buildBathyLabels(fc);
         map.on('zoomend', updateBathyVis);
         updateBathyVis();
       } catch {
@@ -219,12 +216,76 @@
     if (mapDirty) renderMarkers();
   }
 
-  // Show depth contours + legend only when zoomed in (they're dense at low zoom).
+  // Build the filled depth-zone layer. Closed isobaths → filled polygons; drawn shallow→deep
+  // so the deeper (darker, smaller) zones sit on top → a layered depth map. Tap → depth in metres.
+  function buildBathyLayer(fc) {
+    const isClosed = (ring) => {
+      if (!ring || ring.length < 4) return false;
+      const a = ring[0], b = ring[ring.length - 1];
+      return Math.abs(a[0] - b[0]) < 1e-6 && Math.abs(a[1] - b[1]) < 1e-6;
+    };
+    const feats = fc.features
+      .map((f) => {
+        const g = f.geometry;
+        const ring = g.type === 'LineString' ? g.coordinates : null;
+        // Closed ring → Polygon (fillable); otherwise keep the line.
+        const geometry = ring && isClosed(ring) ? { type: 'Polygon', coordinates: [ring] } : g;
+        return { type: 'Feature', properties: f.properties, geometry };
+      })
+      .sort((a, b) => (a.properties.d ?? 0) - (b.properties.d ?? 0)); // shallow first, deep on top
+
+    return L.geoJSON(
+      { type: 'FeatureCollection', features: feats },
+      {
+        renderer: L.canvas(),
+        attribution: 'Bathymetry: AER/Alberta Geological Survey (OGL–Alberta)',
+        style: (f) => {
+          const c = depthColor(f.properties.d);
+          const poly = f.geometry.type === 'Polygon';
+          return { color: c, weight: poly ? 0.4 : 1, fill: poly, fillColor: c, fillOpacity: 0.6 };
+        },
+        onEachFeature: (f, layer) => {
+          const d = f.properties.d;
+          if (d != null) layer.bindPopup(`Depth: <b>${d} m</b>`, { closeButton: false });
+        },
+      },
+    );
+  }
+
+  // One label per lake at its deepest contour, showing max depth ("58 m").
+  function buildBathyLabels(fc) {
+    const deepest = new Map(); // lake -> feature with max depth
+    for (const f of fc.features) {
+      const ln = f.properties.ln, d = f.properties.d;
+      if (!ln || d == null) continue;
+      const cur = deepest.get(ln);
+      if (!cur || d > cur.properties.d) deepest.set(ln, f);
+    }
+    const group = L.layerGroup();
+    for (const f of deepest.values()) {
+      const ring = f.geometry.type === 'LineString' ? f.geometry.coordinates : f.geometry.coordinates[0];
+      let sx = 0, sy = 0;
+      for (const [x, y] of ring) { sx += x; sy += y; }
+      const lat = sy / ring.length, lon = sx / ring.length;
+      L.tooltip({ permanent: true, direction: 'center', className: 'depth-label' })
+        .setLatLng([lat, lon])
+        .setContent(`${f.properties.d} m`)
+        .addTo(group);
+    }
+    return group;
+  }
+
+  // Show depth zones + labels + legend only when zoomed in (dense at low zoom).
   function updateBathyVis() {
     if (!bathyLayer || !map) return;
     const show = map.getZoom() >= BATHY_MIN_ZOOM;
-    if (show && !map.hasLayer(bathyLayer)) bathyLayer.addTo(map);
-    else if (!show && map.hasLayer(bathyLayer)) map.removeLayer(bathyLayer);
+    const toggle = (lyr) => {
+      if (!lyr) return;
+      if (show && !map.hasLayer(lyr)) lyr.addTo(map);
+      else if (!show && map.hasLayer(lyr)) map.removeLayer(lyr);
+    };
+    toggle(bathyLayer);
+    toggle(bathyLabels);
     $('depth-legend').hidden = !show;
   }
 

@@ -1,6 +1,6 @@
 // Service worker — offline cache. Cache-first for the app; tiles cached as you browse.
 // Bump the CACHE version when app files change — the old cache is then deleted.
-const CACHE = 'ab-fishing-v8';
+const CACHE = 'ab-fishing-v9';
 const TILE_CACHE = 'ab-fishing-tiles-v1'; // size-capped cache for tiles seen while browsing
 const TILE_DL_CACHE = 'ab-fishing-tiles-dl-v1'; // persistent cache for explicitly downloaded areas
 const MAX_TILES = 2500; // browse cache cap; downloaded areas are not evicted

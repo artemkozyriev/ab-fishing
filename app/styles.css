@@ -205,6 +205,18 @@ html, body {
   font-size: 13px;
   margin-bottom: 12px;
 }
+/* Per-lake max-depth label on the map */
+.depth-label.leaflet-tooltip {
+  background: rgba(255, 255, 255, 0.85);
+  border: none;
+  box-shadow: none;
+  color: #16305c;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+.depth-label.leaflet-tooltip::before { display: none; } /* no pointer arrow */
 .leaflet-popup-content { margin: 10px 12px; font-size: 14px; }
 .popup-name { font-weight: 700; margin-bottom: 2px; }
 .popup-sub { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
