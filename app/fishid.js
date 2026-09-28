@@ -82,12 +82,16 @@
 
   // ---------- Inference ----------
   // Returns [{ label, p }] sorted desc. The head ends in a softmax, so outputs are probabilities.
+  // Test-time augmentation: average the prediction over the photo and its mirror image (the head
+  // was trained with the same horizontal-flip augmentation) — a small, free robustness boost.
   async function classify(imgEl) {
     await ensureModel();
     const tf = window.tf;
     const probs = tf.tidy(() => {
-      const emb = base.infer(imgEl, true); // [1,1280], normalized internally to [0,1]
-      return head.predict(emb).squeeze();
+      const px = tf.browser.fromPixels(imgEl);
+      const p1 = head.predict(base.infer(px, true)); // [1,19]
+      const p2 = head.predict(base.infer(tf.reverse(px, 1), true)); // mirrored
+      return p1.add(p2).div(2).squeeze();
     });
     const data = Array.from(await probs.data());
     probs.dispose();

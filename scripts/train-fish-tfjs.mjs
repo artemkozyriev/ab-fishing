@@ -35,9 +35,33 @@ const argNum = (name, def) => {
 };
 const EPOCHS = argNum('--epochs', 40);
 const BATCH = argNum('--batch', 32);
+const SEED = argNum('--seed', 42); // fixed → reproducible split, fair A/B comparisons
 const REFRESH = args.includes('--refresh'); // ignore the embedding cache and re-extract
+const CLEAN = args.includes('--clean'); // train only on images MobileNet recognizes as fish-like
 
 const isImg = (f) => /\.(jpe?g|png)$/i.test(f);
+
+// MobileNet's ImageNet vocabulary has many fish/aquatic classes. If none appear in an image's
+// top-5, it's probably a landscape, map, drawing or heavy-glare shot → drop it from TRAINING.
+const FISH_RE = /fish|shark|\bray\b|sting ?ray|eel|trout|salmon|sturgeon|\bgar\b|pike|perch|tench|goldfish|barracouta|coho|puffer|lionfish|anemone|snoek|grouper|rock beauty|gudgeon|loggerhead|terrapin/i;
+
+// Seeded RNG (mulberry32) + Fisher–Yates → reproducible shuffling independent of Math.random.
+function makeShuffle(seed) {
+  let a = seed >>> 0;
+  const rnd = () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return (arr) => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+}
 
 // Extract embeddings for the whole dataset, including a horizontally-flipped copy of each image
 // (cheap augmentation — fish in side view are ~bilaterally symmetric). Returns per-image original
@@ -54,37 +78,44 @@ async function extract() {
   const orig = []; // Float32Array(DIM) per image
   const flip = []; // flipped counterpart, aligned by index
   const ys = [];
+  const keep = []; // 1 if MobileNet sees a fish-like class in the top-5, else 0
   for (let ci = 0; ci < labels.length; ci++) {
     const dir = path.join(DATA_DIR, labels[ci]);
     const files = (await readdir(dir)).filter(isImg);
     process.stdout.write(`\n[${ci + 1}/${labels.length}] ${labels[ci]} (${files.length}): `);
     let done = 0;
+    let kept = 0;
     for (const f of files) {
       try {
         const buf = await readFile(path.join(dir, f));
+        const img = tf.node.decodeImage(buf, 3);
         const [vO, vF] = tf.tidy(() => {
-          const img = tf.node.decodeImage(buf, 3);
           const eO = base.infer(img, true).squeeze(); // [DIM], normalized internally to [0,1]
           const eF = base.infer(tf.reverse(img, 1), true).squeeze(); // horizontal flip
           return [Float32Array.from(eO.dataSync()), Float32Array.from(eF.dataSync())];
         });
+        const cls = await base.classify(img, 5); // ImageNet top-5 → fish-likeness
+        img.dispose();
         if (vO.length !== DIM || vF.length !== DIM) { process.stdout.write(`[bad-dim] `); continue; }
         orig.push(vO);
         flip.push(vF);
         ys.push(ci);
+        const fishy = cls.some((c) => FISH_RE.test(c.className)) ? 1 : 0;
+        keep.push(fishy);
+        kept += fishy;
         if (++done % 25 === 0) process.stdout.write(`${done} `);
       } catch {
         process.stdout.write(`[skip ${f}] `);
       }
     }
-    process.stdout.write(`→ ${done}`);
+    process.stdout.write(`→ ${done} (fish-like ${kept})`);
   }
   const n = orig.length;
   const flat = new Float32Array(n * DIM);
   const flatF = new Float32Array(n * DIM);
   orig.forEach((c, i) => flat.set(c, i * DIM));
   flip.forEach((c, i) => flatF.set(c, i * DIM));
-  return { labels, flat, flatF, y: Int32Array.from(ys), n };
+  return { labels, flat, flatF, y: Int32Array.from(ys), keep: Uint8Array.from(keep), n };
 }
 
 async function loadCache() {
@@ -95,6 +126,7 @@ async function loadCache() {
     flat: toF32(await readFile(CACHE + '.bin')),
     flatF: toF32(await readFile(CACHE + '.flip.bin')),
     y: Int32Array.from(meta.y),
+    keep: Uint8Array.from(meta.keep || new Array(meta.n).fill(1)),
     n: meta.n,
   };
 }
@@ -109,19 +141,26 @@ async function main() {
     await mkdir(DATA_DIR, { recursive: true });
     await writeFile(CACHE + '.bin', Buffer.from(data.flat.buffer));
     await writeFile(CACHE + '.flip.bin', Buffer.from(data.flatF.buffer));
-    await writeFile(CACHE + '.json', JSON.stringify({ labels: data.labels, y: Array.from(data.y), n: data.n, dim: DIM }));
+    await writeFile(CACHE + '.json', JSON.stringify({ labels: data.labels, y: Array.from(data.y), keep: Array.from(data.keep), n: data.n, dim: DIM }));
     console.log('\nCached embeddings → data/fish-emb-cache.{bin,flip.bin,json}');
   }
-  const { labels, flat, flatF, y, n } = data;
-  console.log(`\n${n} images across ${labels.length} classes. Building head…`);
+  const { labels, flat, flatF, y, keep, n } = data;
+  console.log(`\n${n} images across ${labels.length} classes.` + (CLEAN ? ' Cleaning training set (fish-like only).' : ''));
 
-  // ---- Split by IMAGE (last 15% = holdout), so an image's flip never leaks into validation.
-  // Train set = originals + flips of the training images (2× data); val = originals only. ----
-  const perm = Array.from(tf.util.createShuffledIndices(n));
+  // ---- Split by IMAGE with a fixed seed (last 15% = holdout), so a flip never leaks into
+  // validation and the holdout is identical across runs (fair A/B). Val is ALWAYS the full set
+  // (real photos are messy); --clean only filters the TRAINING images. ----
+  const shuffle = makeShuffle(SEED);
+  const perm = shuffle(Array.from({ length: n }, (_, i) => i));
   const nVal = Math.round(n * 0.15);
-  const nTrain = n - nVal;
-  const trainIdx = perm.slice(0, nTrain);
-  const valIdx = perm.slice(nTrain);
+  let trainIdx = perm.slice(0, n - nVal);
+  const valIdx = perm.slice(n - nVal);
+  if (CLEAN) {
+    const before = trainIdx.length;
+    trainIdx = trainIdx.filter((j) => keep[j]);
+    console.log(`Cleaned training images: ${trainIdx.length}/${before} kept (${before - trainIdx.length} dropped as non-fish-like).`);
+  }
+  const nTrain = trainIdx.length;
 
   const row = (src, j, dst, i) => dst.set(src.subarray(j * DIM, j * DIM + DIM), i * DIM);
   const xTrain = new Float32Array(nTrain * 2 * DIM);
