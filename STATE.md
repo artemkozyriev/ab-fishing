@@ -1,6 +1,6 @@
 # STATE — точка продолжения
 
-Последнее обновление: 2026-09-22. Коммит: `5097f7c`. Всё запушено (local = origin).
+Последнее обновление: 2026-09-28. Коммит: `e35660d`. Всё запушено (local = origin).
 
 ## 🌐 Живой сайт
 **https://artemkozyriev.github.io/ab-fishing/**
@@ -29,6 +29,23 @@ node scripts/serve.mjs        # → http://localhost:5173
 - `npm run build-data`  — собрать app/data из data/
 - `npm run icons`       — сгенерировать PNG-иконки
 - `npm run serve`       — дев-сервер
+- `npm run fetch-fish`  — собрать датасет фото рыб (iNaturalist → data/fish-images/)
+- `npm run train-fish`  — обучить модель 📷 ID (tfjs-node → app/model/)
+
+## 📷 Fish-ID — что закоммичено vs локальное (важно после переустановки)
+**В git (приложение работает из чистого клона, переобучение не нужно):**
+`app/fishid.js`, `app/vendor/` (tf.min.js + mobilenet ~14 МБ), `app/model/` (обученная голова + labels),
+скрипты, доки. Модель уже обучена и задеплоена.
+
+**Локальное, НЕ в git** (регенерируется, живёт только на этой машине):
+- `data/fish-images/` (~433 МБ) — датасет. Пересобрать: `npm run fetch-fish`.
+- `data/fish-emb-cache.*` (~18 МБ) — кэш MobileNet-эмбеддингов (ускоряет переобучение головы).
+- `node_modules/` — после `npm install` на Windows скопировать
+  `node_modules/@tensorflow/tfjs-node/deps/lib/tensorflow.dll` → `.../lib/napi-v8/`
+  (иначе tfjs-node не грузится; см. `app/model/README.md`).
+
+Полное описание фичи, метрики (top-1 ~45% / top-3 ~69%), архитектура и как поднять точность —
+в **`FEATURE_FISH_ID.md`**; про модель/обучение — в **`app/model/README.md`**.
 
 ## Как задеплоить изменения
 ```bash

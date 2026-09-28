@@ -21,6 +21,11 @@ node ../scripts/serve.mjs      # from the scripts folder: node scripts/serve.mjs
 - 🎯 **Filter by fish species** (shared by list and map): "where can I fish for walleye" + a
   "harvest allowed only" option (bag limit > 0).
 - 📍 **Near me**: GPS → point-in-polygon over lake geometry → "you are on Lake X" + nearest lakes.
+- 📷 **Identify a fish (on-device, offline)**: take/choose a photo → a two-stage TensorFlow.js
+  classifier (vendored MobileNet v2 → trained head) predicts one of the 19 Alberta species,
+  entirely in the browser. Top-3 with a confidence threshold + test-time augmentation; the result
+  links straight to that species' regulations. TF.js is lazy-loaded on first use so startup stays
+  fast. Build/retrain the model: see `model/README.md` (`npm run fetch-fish` → `npm run train-fish`).
 - 📴 **Offline**, including the map:
   - App, data and Leaflet are cached (cache-first).
   - Vector water layers (lake outlines + river lines) are drawn from our own geometry — visible
@@ -50,9 +55,12 @@ PWA icons are generated from `icons/icon.svg` by `scripts/make-icons.mjs` (uses 
 | `index.html` | markup, SW registration |
 | `styles.css` | styles (mobile-first) |
 | `db.js` | data layer + geo (search, point-in-polygon, nearest) |
-| `app.js` | UI logic (screens, rendering, GPS, species filter) |
-| `sw.js` | service worker (offline cache; version `ab-fishing-v3`) |
+| `app.js` | UI logic (screens, rendering, GPS, species filter); exposes `window.ABFishing` bridge |
+| `fishid.js` | 📷 fish-ID: on-device TF.js inference (MobileNet embedding → head), lazy-loaded |
+| `sw.js` | service worker (offline cache; version `ab-fishing-v11`) |
 | `manifest.webmanifest` | PWA manifest |
+| `vendor/` | TF.js runtime (`tf.min.js`) + MobileNet v2 (`mobilenet/`, ~14 MB) — cached for offline |
+| `model/` | trained fish-ID head (`model.json`, `weights.bin`) + `labels.json` + build docs |
 | `data/` | built by `scripts/build-app-data.mjs` from `../data/` |
 
 ## App data (`data/`)
