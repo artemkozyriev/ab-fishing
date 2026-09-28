@@ -591,5 +591,25 @@
     }
   }
 
+  // ---------- Bridge for the fish-ID screen (fishid.js) ----------
+  // Lets the on-device classifier hand an identified species off to the existing
+  // species filter + list, reusing the rules screen. Kept tiny and read-only.
+  window.ABFishing = {
+    // True if the species (UPPERCASE, as in meta.json) is a filterable option.
+    hasSpecies(sp) {
+      const sel = $('species-filter');
+      return Array.from(sel.options).some((o) => o.value === sp);
+    },
+    // Select the species and show the list filtered to it.
+    showSpecies(sp) {
+      const sel = $('species-filter');
+      if (!Array.from(sel.options).some((o) => o.value === sp)) return;
+      sel.value = sp;
+      $('search-input').value = '';
+      onFilterChange();
+      showScreen('search');
+    },
+  };
+
   document.addEventListener('DOMContentLoaded', init);
 })();

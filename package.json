@@ -8,10 +8,15 @@
     "fetch": "node scripts/fetch-regulations.mjs",
     "build-data": "node scripts/build-app-data.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "fetch-fish": "node scripts/fetch-fish-images.mjs",
+    "train-fish": "node scripts/train-fish-tfjs.mjs",
+    "train-fish-py": "python scripts/train_fish_model.py"
   },
   "license": "ISC",
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2"
+    "@resvg/resvg-js": "^2.6.2",
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs-node": "^4.22.0"
   }
 }

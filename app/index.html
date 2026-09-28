@@ -90,6 +90,29 @@
         <p id="map-info" class="map-info"></p>
       </section>
 
+      <!-- Fish identification screen (on-device, offline) -->
+      <section id="screen-id" class="screen">
+        <div class="id-wrap">
+          <div class="id-intro">
+            <h2>Identify your catch</h2>
+            <p>Take or choose a photo of the fish. Identification runs entirely on your device — it works offline.</p>
+          </div>
+          <label class="id-capture" id="id-capture-label">
+            <input type="file" id="id-file" accept="image/*" capture="environment" hidden />
+            <span class="id-capture-btn">📷 Take / choose photo</span>
+          </label>
+          <div id="id-preview-wrap" class="id-preview-wrap" hidden>
+            <img id="id-preview" class="id-preview" alt="Selected fish photo" />
+          </div>
+          <div id="id-status" class="id-status"></div>
+          <div id="id-results" class="id-results"></div>
+          <p class="id-disclaimer">
+            On-device estimate only — similar species (e.g. walleye/sauger, brook/brown/rainbow trout)
+            are easy to confuse. Always confirm against the official identification guide before keeping a fish.
+          </p>
+        </div>
+      </section>
+
       <!-- Waterbody detail screen -->
       <section id="screen-detail" class="screen">
         <button id="btn-back" class="btn-back">← Back</button>
@@ -100,6 +123,7 @@
     <nav class="tabbar" id="tabbar">
       <button class="tab active" data-tab="search">📋 List</button>
       <button class="tab" data-tab="map">🗺️ Map</button>
+      <button class="tab" data-tab="id">📷 ID</button>
     </nav>
 
     <!-- Downloaded-areas manager -->
@@ -125,6 +149,9 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="db.js"></script>
     <script src="app.js"></script>
+    <!-- On-device fish ID. fishid.js is tiny; it lazy-loads the 1.4 MB TF.js only when the
+         user actually identifies a photo, so startup stays fast. -->
+    <script src="fishid.js"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));

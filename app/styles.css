@@ -373,3 +373,84 @@ html, body {
   max-width: 90%;
 }
 .toast.show { opacity: 0.95; }
+
+/* Fish ID (on-device) */
+.id-wrap { max-width: 620px; margin: 0 auto; padding: 6px 2px 20px; }
+.id-intro h2 { font-size: 20px; margin: 6px 0 4px; }
+.id-intro p { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0 0 14px; }
+.id-capture { display: block; }
+.id-capture-btn {
+  display: block;
+  text-align: center;
+  background: var(--green);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.id-capture:active .id-capture-btn { background: var(--green-light); }
+.id-preview-wrap { margin-top: 14px; text-align: center; }
+.id-preview {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
+.id-status { margin: 14px 2px 4px; font-size: 14px; color: var(--text); min-height: 20px; }
+.id-status.ok { color: var(--open); }
+.id-status.warn { color: var(--closed); }
+.id-status code {
+  background: #eef2ef;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.id-spin {
+  display: inline-block;
+  width: 13px; height: 13px;
+  border: 2px solid var(--line);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  vertical-align: -2px;
+  margin-right: 6px;
+  animation: id-spin 0.8s linear infinite;
+}
+@keyframes id-spin { to { transform: rotate(360deg); } }
+.id-results { margin-top: 8px; }
+.id-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+.id-result.primary { border-color: var(--accent); border-width: 2px; }
+.id-result-main { flex: 1; min-width: 0; }
+.id-result-name { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.id-bar { height: 6px; background: #eef2ef; border-radius: 6px; overflow: hidden; }
+.id-bar-fill { display: block; height: 100%; background: var(--green-light); border-radius: 6px; }
+.id-result.primary .id-bar-fill { background: var(--accent); }
+.id-pct { font-weight: 700; font-size: 14px; color: var(--muted); min-width: 40px; text-align: right; }
+.id-rules-btn {
+  border: none;
+  background: var(--green-light);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.id-rules-btn:active { background: var(--green); }
+.id-disclaimer {
+  margin-top: 16px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}

@@ -1,6 +1,6 @@
 // Service worker — offline cache. Cache-first for the app; tiles cached as you browse.
 // Bump the CACHE version when app files change — the old cache is then deleted.
-const CACHE = 'ab-fishing-v9';
+const CACHE = 'ab-fishing-v11';
 const TILE_CACHE = 'ab-fishing-tiles-v1'; // size-capped cache for tiles seen while browsing
 const TILE_DL_CACHE = 'ab-fishing-tiles-dl-v1'; // persistent cache for explicitly downloaded areas
 const MAX_TILES = 2500; // browse cache cap; downloaded areas are not evicted
@@ -12,6 +12,11 @@ const CORE = [
   './styles.css',
   './db.js',
   './app.js',
+  './fishid.js',
+  './vendor/tf.min.js',
+  './vendor/mobilenet.min.js',
+  './vendor/mobilenet/model.json',
+  './vendor/mobilenet/weights.bin',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',
@@ -40,6 +45,11 @@ const VENDOR = [
   'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 ];
 
+// Fish-ID model files. Soft-cached: labels.json ships now, but model.json + its weight shards
+// only exist after training (scripts/train-fish-model.mjs), so install must not fail if they're
+// absent. Once present and loaded once online, the fetch handler below caches them for offline.
+const MODEL = ['./model/labels.json', './model/model.json', './model/weights.bin'];
+
 const isTile = (url) => url.hostname.endsWith('tile.openstreetmap.org');
 
 self.addEventListener('install', (e) => {
@@ -49,6 +59,7 @@ self.addEventListener('install', (e) => {
       .then(async (c) => {
         await c.addAll(CORE);
         await Promise.allSettled(VENDOR.map((u) => c.add(u))); // don't fail install over the CDN
+        await Promise.allSettled(MODEL.map((u) => c.add(u))); // model may not be trained yet
       })
       .then(() => self.skipWaiting()),
   );
